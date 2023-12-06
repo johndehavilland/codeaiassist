@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Powered Code Assistance</title>
+  <!-- Bootstrap CSS link -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body class="container mt-5">
+
+  <h1 class="mb-4">AI Powered Code Assistance</h1>
+
+  <div class="form-group">
+    <input type="text" id="repoUrl" value="https://github.com/ahmedaabuwarda/Send_Email_Using_Java">
+    <input type="text" id="repoPath" value="src/JavaMail">
+    <button class="btn btn-primary mb-3" onclick="loadFiles()">Load Files</button>
+  </div>
+
+    <!-- Loading spinner for list blobs -->
+    <div id="listBlobsSpinner" class="spinner-border text-primary" role="status" style="display: none;">
+        <span class="sr-only">Loading...</span>
+      </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <h2>Blobs:</h2>
+      <select id="fileList" size="10" class="form-control" onchange="loadBlobContent()"></select>
+    </div>
+
+    <div class="col-md-6">
+      <h2>Blob Content:</h2>
+      <textarea id="fileContent" rows="10" class="form-control" readonly></textarea>
+    </div>
+  </div>
+
+  <button class="btn btn-primary mt-3" onclick="explainCode()">Explain</button>
+  <button class="btn btn-primary mt-3" onclick="upgradeReviewCode()">Upgrade Recommendations</button>
+
+  <!-- Loading spinner for explain -->
+  <div id="explainSpinner" class="spinner-border text-primary" role="status" style="display: none;">
+    <span class="sr-only">Loading...</span>
+  </div>
+
+ <div id="resultDiv"></div>
+
+  <!-- Bootstrap JS and Popper.js script links (order matters) -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  <script>
+   function loadFiles() {
+    const repoUrl = document.getElementById('repoUrl').value;
+    const repoPath = document.getElementById('repoPath').value;
+    const apiUrl = `https://api.github.com/repos/${repoUrl.split('github.com/')[1]}/contents/${repoPath}`;
+
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        const files = data.filter(item => item.type === 'file');
+        let fileListHtml = '';
+        files.forEach(file => {
+          fileListHtml += `<option value="${file.download_url}">${file.name}</option>`;
+        });
+        document.getElementById('fileList').innerHTML = fileListHtml;
+      })
+      .catch(error => console.error('Error:', error));
+    }
+
+
+    function loadBlobContent() {
+      // Get the selected option in the 'fileList' select element
+      const fileList = document.getElementById('fileList');
+      const selectedFileUrl = fileList.options[fileList.selectedIndex].value;
+
+      // Fetch the content of the file
+      fetch(selectedFileUrl)
+        .then(response => response.text())
+        .then(data => {
+          // Display the fetched content in the 'fileContent' textarea
+          document.getElementById('fileContent').innerHTML = data;
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function explainCode() {
+      const apiUrl = "https://jdh-code-copilot.greenmeadow-aa62d610.northcentralusstage.azurecontainerapps.io"
+      const blobContent = document.getElementById('fileContent').value;
+      
+      // Show loading spinner
+      document.getElementById('explainSpinner').style.display = 'inline-block';
+
+      
+
+      // Call the /explain endpoint with the extracted date and blob content
+      fetch(`${apiUrl}/explain`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text_content: blobContent,
+        }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        const resultDiv = document.getElementById('resultDiv');
+
+   
+
+        // Parse the 'explain' entity into JSON
+        //const explainResults = JSON.parse(data);
+
+         // Write the response to the div
+        resultDiv.textContent = data.explain
+      
+
+      
+         // Hide loading spinner
+         document.getElementById('explainSpinner').style.display = 'none';
+      })
+      .catch(error => {
+        console.error('Error explaining content:', error);
+        // Hide loading spinner in case of an error
+        document.getElementById('explainSpinner').style.display = 'none';
+      });
+    }
+
+    function extractDateFromBlobName(blobName) {
+      // Assuming the date is the first part of the file name, extract it
+      const dateRegex = /^\d{4}-\d{2}-\d{2}/;
+      const match = blobName.match(dateRegex);
+      return match ? match[0] : null;
+    }
+  </script>
+
+</body>
+</html>
